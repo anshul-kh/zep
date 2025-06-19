@@ -1,7 +1,9 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
@@ -186,4 +188,31 @@ func (z *ZepCore) MonitorProcesses() {
 			}
 		}
 	}()
+}
+
+
+func (z *ZepCore) WatchProcess(id int) {
+	logFile , ok := z.logStore[id]
+	if !ok {
+		fmt.Printf("failed to find the logfile of process with id:%d",id)
+		return
+	}
+
+	file , err := os.Open(logFile)
+	if err != nil {
+		fmt.Printf("failed to open log file")
+		return
+	}
+	defer file.Close()
+
+	file.Seek(0,io.SeekEnd)
+
+	sc := bufio.NewScanner(file)
+	for {
+		for sc.Scan() {
+			fmt.Print(sc.Text())
+		}
+		
+		time.Sleep(time.Second)
+	}
 }
