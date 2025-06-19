@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	logDir      = "/var/log/zep"
-	pidDir      = "/var/run/zep"
-	logFilePath = "/var/log/zep/zep.log"
-	pidFilePath = "/var/run/zep/zep.pid"
+	logDir        = "/var/log/zep"
+	pidDir        = "/var/run/zep"
+	logFilePath   = "/var/log/zep/zep.log"
+	pidFilePath   = "/var/run/zep/zep.pid"
 	masterLogFile = "master.log"
 )
 
@@ -62,16 +62,16 @@ func startDaemon() {
 	defer cntx.Release()
 
 	logger, err := logger.NewLogger(masterLogFile)
-	
+
 	if err != nil {
-		log.Printf("failed to start logger service:-\n=====\n%v\n====\n",err)
+		log.Printf("failed to start logger service:-\n=====\n%v\n====\n", err)
 	}
 
 	m := master.NewMaster(logger)
-	
+
 	if !m.IsRunning {
 		m.StartMaster()
-	}	
+	}
 
 	log.Printf("daemon started with pid:%d", os.Getpid())
 }
@@ -88,8 +88,14 @@ func stopDaemon() {
 	}
 
 	err = p.Signal(syscall.SIGTERM)
+
 	if err != nil {
 		log.Fatalf("failed to stop daemon: %v", err)
+	}
+
+	err = os.Remove(pidFilePath)
+	if err != nil {
+		log.Fatal("failed to stop daemon properly")
 	}
 
 	log.Print("daemon stopped")

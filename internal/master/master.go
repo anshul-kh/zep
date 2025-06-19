@@ -10,7 +10,7 @@ import (
 
 const (
 	host = "127.0.0.1"
-	port = "93746"
+	port = "3746"
 )
 
 type Master struct {
