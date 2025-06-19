@@ -6,6 +6,8 @@ import (
 	"os"
 	"syscall"
 
+	logger "github.com/anshul-kh/zep-core/internal/logger"
+	"github.com/anshul-kh/zep-core/internal/master"
 	dm "github.com/sevlyar/go-daemon"
 )
 
@@ -14,6 +16,7 @@ var (
 	pidDir      = "/var/run/zep"
 	logFilePath = "/var/log/zep/zep.log"
 	pidFilePath = "/var/run/zep/zep.pid"
+	masterLogFile = "master.log"
 )
 
 const (
@@ -58,8 +61,19 @@ func startDaemon() {
 
 	defer cntx.Release()
 
-	log.Printf("daemon started with pid:%d", os.Getpid())
+	logger, err := logger.NewLogger(masterLogFile)
+	
+	if err != nil {
+		log.Printf("failed to start logger service:-\n=====\n%v\n====\n",err)
+	}
 
+	m := master.NewMaster(logger)
+	
+	if !m.IsRunning {
+		m.StartMaster()
+	}	
+
+	log.Printf("daemon started with pid:%d", os.Getpid())
 }
 
 func stopDaemon() {
