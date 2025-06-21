@@ -86,7 +86,7 @@ func (z *ZepCore) SpawnNewProcess(binaryPath string, extId int, args ...string) 
 	z.binPathStore[id] = binaryPath
 	z.argsStore[id] = args
 
-	newLogger.Info(fmt.Sprintf("Process is started with PID:%s", cmd.Process.Pid))
+	newLogger.Info(fmt.Sprintf("Process is started with PID:%d", cmd.Process.Pid))
 
 	return nil
 }
@@ -110,7 +110,7 @@ func (z *ZepCore) KillProcess(id int) error {
 	lgr, ok := z.zlog[id]
 
 	if ok {
-		lgr.Warn(fmt.Sprint("process terminated."))
+		lgr.Warn("process terminated.")
 	}
 
 	delete(z.zlog, id)
@@ -190,29 +190,39 @@ func (z *ZepCore) MonitorProcesses() {
 	}()
 }
 
-
 func (z *ZepCore) WatchProcess(id int) {
-	logFile , ok := z.logStore[id]
+	logFile, ok := z.logStore[id]
 	if !ok {
-		fmt.Printf("failed to find the logfile of process with id:%d",id)
+		fmt.Printf("failed to find the logfile of process with id:%d", id)
 		return
 	}
 
-	file , err := os.Open(logFile)
+	file, err := os.Open(logFile)
 	if err != nil {
 		fmt.Printf("failed to open log file")
 		return
 	}
 	defer file.Close()
 
-	file.Seek(0,io.SeekEnd)
+	file.Seek(0, io.SeekEnd)
 
 	sc := bufio.NewScanner(file)
 	for {
 		for sc.Scan() {
 			fmt.Print(sc.Text())
 		}
-		
+
 		time.Sleep(time.Second)
+	}
+}
+
+func (z *ZepCore) StopCore() {
+	for id, pid := range z.pidStore {
+		logFile := z.logStore[id]
+		os.Remove(logFile)
+		p, err := os.FindProcess(pid)
+		if err == nil {
+			p.Signal(syscall.SIGTERM)
+		}
 	}
 }

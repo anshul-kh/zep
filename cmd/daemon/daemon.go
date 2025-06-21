@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"syscall"
 
 	logger "github.com/anshul-kh/zep-core/internal/logger"
@@ -70,10 +71,18 @@ func startDaemon() {
 	m := master.NewMaster(logger)
 
 	if !m.IsRunning {
-		m.StartMaster()
+		go m.StartMaster()
 	}
 
 	log.Printf("daemon started with pid:%d", os.Getpid())
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	sig := <-sigChan
+	log.Printf("recieved terminating signal:%v", sig)
+	m.StopMaster()
+
 }
 
 func stopDaemon() {

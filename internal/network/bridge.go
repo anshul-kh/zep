@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/anshul-kh/zep-core/internal/helper"
 	"github.com/vishvananda/netlink"
 )
 
@@ -29,9 +30,9 @@ func NewBridge() *Bridge {
 
 func (b *Bridge) SetUpBridge() error {
 
-	_, err := netlink.LinkByName(b.Name)
+	extBr, err := netlink.LinkByName(b.Name)
 	if err == nil {
-		fmt.Printf("bridge network is already running. :%v", err)
+		netlink.LinkSetUp(extBr)
 		return nil
 	}
 
@@ -62,9 +63,50 @@ func (b *Bridge) SetUpBridge() error {
 		return fmt.Errorf("failed to enable ip_forward:%w", err)
 	}
 
-	// TODO: setup NAT
+	netIf, err := helper.GetDefaultInterface()
+	if err != nil {
+		return err
+	}
+
+	err = b.setUpNAT(addr.IPNet.String(), netIf)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-// func to setup nat
+func (b *Bridge) StopBridge() error {
+	br, err := netlink.LinkByName(b.Name)
+	if err != nil {
+		return fmt.Errorf("failed to find bridge network:%w", err)
+	}
+
+	err = netlink.LinkSetDown(br)
+	if err != nil {
+		return fmt.Errorf("failed to stop bridge network:%w", err)
+	}
+
+	return nil
+}
+
+func (b *Bridge) setUpNAT(bridgeSubnet, externalIf string) error {
+
+	cmds := [][]string{
+		// NAT -> internet
+		{"-t", "nat", "-A", "POSTROUTING", "-s", bridgeSubnet, "-o", externalIf, "-j", "MASQUERADE"},
+		// bridge -> external interface
+		{"-A", "FORWARD", "-i", b.Name, "-o", externalIf, "-j", "ACCEPT"},
+		// return back
+		{"-A", "FORWARD", "-i", externalIf, "-o", b.Name, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"},
+	}
+
+	for _, args := range cmds {
+		cmd := exec.Command("iptables", args...)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("iptables %v failed:%w", args, err)
+		}
+	}
+
+	return nil
+}
