@@ -190,30 +190,39 @@ func (z *ZepCore) MonitorProcesses() {
 	}()
 }
 
-func (z *ZepCore) WatchProcess(id int) {
+func (z *ZepCore) WatchProcess(id int) (<-chan string, error) {
 	logFile, ok := z.logStore[id]
 	if !ok {
-		fmt.Printf("failed to find the logfile of process with id:%d", id)
-		return
+		return nil, fmt.Errorf("failed to find the logfile of process with id:%d", id)
 	}
 
 	file, err := os.Open(logFile)
 	if err != nil {
-		fmt.Printf("failed to open log file")
-		return
+		return nil, fmt.Errorf("failed to open log file")
 	}
-	defer file.Close()
 
-	file.Seek(0, io.SeekEnd)
+	if _, err := file.Seek(0, io.SeekEnd); err != nil {
+		file.Close()
+		return nil, err
+	}
 
-	sc := bufio.NewScanner(file)
-	for {
-		for sc.Scan() {
-			fmt.Print(sc.Text())
+	lines := make(chan string)
+
+	go func() {
+		defer file.Close()
+		defer close(lines)
+
+		sc := bufio.NewScanner(file)
+
+		for {
+			for sc.Scan() {
+				lines <- sc.Text()
+			}
+			time.Sleep(time.Second)
 		}
+	}()
 
-		time.Sleep(time.Second)
-	}
+	return lines, nil
 }
 
 func (z *ZepCore) StopCore() {

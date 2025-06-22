@@ -46,6 +46,14 @@ func (m *Master) StartMaster() error {
 		fmt.Fprint(w, "server up and running")
 	})
 
+	mux.HandleFunc("/api/newProc", m.newProc)
+
+	mux.HandleFunc("/api/killProc/{id}", m.killProc)
+
+	mux.HandleFunc("/api/showStats/{id}", m.showStats)
+
+	mux.HandleFunc("/watchProc/{id}", m.watchProc)
+
 	err := m.br.SetUpBridge()
 	if err != nil {
 		m.log.Error(err)

@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+	"log"
 	"os/exec"
 
 	"github.com/anshul-kh/zep-core/internal/helper"
@@ -12,19 +13,28 @@ type Bridge struct {
 	GateWay string
 	CIDR    string
 	Name    string
+	IPAlloc *IPAllocator
 }
 
 const (
 	BRIDGE_GATEWAY = "184.23.0.1"
 	BRIDGE_CIDR    = "24"
 	BRIDGE_NAME    = "zep0"
+	BRIDGE_IP      = "184.23.0.0"
 )
 
 func NewBridge() *Bridge {
+
+	ipAlloc, err := NewIPAllcator(fmt.Sprintf("%s/%s", BRIDGE_IP, BRIDGE_CIDR))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &Bridge{
 		GateWay: BRIDGE_GATEWAY,
 		CIDR:    BRIDGE_CIDR,
 		Name:    BRIDGE_NAME,
+		IPAlloc: ipAlloc,
 	}
 }
 
