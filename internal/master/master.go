@@ -41,7 +41,7 @@ func (m *Master) StartMaster() error {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
 		m.log.Info("server up and running")
 		fmt.Fprint(w, "server up and running")
 	})

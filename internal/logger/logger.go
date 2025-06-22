@@ -37,7 +37,7 @@ func NewLogger(logFileName string) (*Logger, error) {
 		return nil, err
 	}
 
-	logFile, err := os.OpenFile(fmt.Sprintf("%s/%s", logDir, logFileName), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile(fmt.Sprintf("%s/%s", logDir, logFileName), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file:%v", err)
 	}

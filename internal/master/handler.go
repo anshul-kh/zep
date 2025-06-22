@@ -49,7 +49,7 @@ func (m *Master) newProc(w http.ResponseWriter, r *http.Request) {
 
 func (m *Master) killProc(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != "DELETE" {
+	if r.Method != http.MethodPost {
 		WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
@@ -136,7 +136,8 @@ func (m *Master) watchProc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for line := range lines {
-		fmt.Fprintf(w, "data: %s\n\n", line)
+		fmt.Fprintf(w, "data: %s\n", line)
 		flusher.Flush()
 	}
+
 }

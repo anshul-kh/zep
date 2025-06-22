@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +20,10 @@ type ZepCore struct {
 	binPathStore map[int]string
 	argsStore    map[int][]string
 }
+
+const (
+	logDir = "/var/log/zep"
+)
 
 func NewCore() *ZepCore {
 	return &ZepCore{
@@ -196,9 +199,9 @@ func (z *ZepCore) WatchProcess(id int) (<-chan string, error) {
 		return nil, fmt.Errorf("failed to find the logfile of process with id:%d", id)
 	}
 
-	file, err := os.Open(logFile)
+	file, err := os.Open(fmt.Sprintf("%s/%s", logDir, logFile))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file")
+		return nil, fmt.Errorf("failed to open log file(%s):%w", logFile, err)
 	}
 
 	if _, err := file.Seek(0, io.SeekEnd); err != nil {
@@ -212,13 +215,17 @@ func (z *ZepCore) WatchProcess(id int) (<-chan string, error) {
 		defer file.Close()
 		defer close(lines)
 
-		sc := bufio.NewScanner(file)
-
+		buf := make([]byte, 1024)
 		for {
-			for sc.Scan() {
-				lines <- sc.Text()
+			n, err := file.Read(buf)
+			if n > 0 {
+				lines <- string(buf[:n])
 			}
-			time.Sleep(time.Second)
+			if err != nil && err != io.EOF {
+				fmt.Printf("read error: %v\n", err)
+				break
+			}
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
@@ -228,7 +235,7 @@ func (z *ZepCore) WatchProcess(id int) (<-chan string, error) {
 func (z *ZepCore) StopCore() {
 	for id, pid := range z.pidStore {
 		logFile := z.logStore[id]
-		os.Remove(logFile)
+		os.Remove(fmt.Sprintf("%s/%s", logDir, logFile))
 		p, err := os.FindProcess(pid)
 		if err == nil {
 			p.Signal(syscall.SIGTERM)
