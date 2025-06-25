@@ -38,6 +38,7 @@ func (m *Master) newProc(w http.ResponseWriter, r *http.Request) {
 	err := m.core.SpawnNewProcess(req.BinaryPath, -1, req.Args...)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	err = WriteJSON(w, http.StatusCreated, SuccessResponse{Success: true, Msg: "process created successfully!!!"}, nil)
@@ -64,6 +65,7 @@ func (m *Master) killProc(w http.ResponseWriter, r *http.Request) {
 
 	if zid <= 0 {
 		WriteError(w, http.StatusInternalServerError, "Invalid ID")
+		return
 	}
 
 	err = m.core.KillProcess(zid)

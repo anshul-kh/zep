@@ -52,7 +52,7 @@ func (m *Master) StartMaster() error {
 
 	mux.HandleFunc("/api/showStats/{id}", m.showStats)
 
-	mux.HandleFunc("/watchProc/{id}", m.watchProc)
+	mux.HandleFunc("/api/watchProc/{id}", m.watchProc)
 
 	err := m.br.SetUpBridge()
 	if err != nil {

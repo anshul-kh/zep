@@ -1,8 +1,12 @@
 package helper
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"path/filepath"
 
 	"github.com/vishvananda/netlink"
@@ -37,4 +41,36 @@ func GetDefaultInterface() (string, error) {
 	}
 
 	return link.Attrs().Name, nil
+}
+
+func DecodeJSONFromResponse(resp *http.Response, target interface{}) error {
+
+	if resp == nil {
+		return fmt.Errorf("response is null")
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Error : %s", string(body))
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+	fmt.Print(resp.Body)
+	err := decoder.Decode(&target)
+	if err != nil {
+		return fmt.Errorf("failed to decode json: %w", err)
+	}
+
+	return nil
+}
+
+func JSONToBuffer(v interface{}) (bytes.Buffer, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return bytes.Buffer{}, err
+	}
+
+	return *bytes.NewBuffer(data), nil
 }
