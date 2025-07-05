@@ -14,9 +14,10 @@ type ErrorResponse struct {
 	Msg     string `json:"message"`
 }
 
+// bad http request error type
 type MalformedRequest struct {
-	Status int
-	Msg    string
+	Status int    `json:"success"`
+	Msg    string `json:"message"`
 }
 
 func (m *MalformedRequest) Error() string {
@@ -33,7 +34,7 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}, headers http.He
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	data, err := json.MarshalIndent(v, "", "\t")
+	data, err := json.MarshalIndent(v, "", "")
 	if err != nil {
 		return err
 	}

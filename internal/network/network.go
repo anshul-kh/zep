@@ -5,6 +5,11 @@ import (
 	"net"
 )
 
+/**
+* * ip-allocator manages ip related function for the processes
+* * it maps , assigns , and frees ip for each process
+ */
+
 type IPAllocator struct {
 	network  *net.IPNet
 	current  net.IP

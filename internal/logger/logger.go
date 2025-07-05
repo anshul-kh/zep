@@ -11,7 +11,11 @@ const (
 	logPerm = 0667
 )
 
-// debug , info , warn , error
+/** =======================================
+* custom logger shared across each process.
+* supports : debug , info , warn , error
+* ==========================================*/
+
 type Logger struct {
 	debug   *log.Logger
 	warn    *log.Logger
@@ -37,7 +41,7 @@ func NewLogger(logFileName string) (*Logger, error) {
 		return nil, err
 	}
 
-	logFile, err := os.OpenFile(fmt.Sprintf("%s/%s", logDir, logFileName), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	logFile, err := os.OpenFile(fmt.Sprintf("%s/%s", logDir, logFileName), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file:%v", err)
 	}

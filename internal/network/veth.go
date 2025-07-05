@@ -10,6 +10,12 @@ import (
 	"github.com/vishvananda/netns"
 )
 
+/**
+* * veth setups new network interface (virtual) on the system
+* * also assigns each process with the network (bridge)
+* * bridge network is set-up as a veth (virtual ethernet) on the system
+* * all the processes route data through this bridge network
+ */
 type Veth struct {
 	HostName   string
 	PeerName   string

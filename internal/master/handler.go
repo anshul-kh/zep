@@ -4,11 +4,18 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
+
+/*
+* * HTTP Handlers to execute http request
+* * calls core functions of ZepCore
+ */
 
 type NewProcRequest struct {
 	BinaryPath string   `json:"binaryPath"`
 	Args       []string `json:"args"`
+	Name       string   `json:"name"`
 }
 
 type SuccessResponse struct {
@@ -17,8 +24,18 @@ type SuccessResponse struct {
 	Data    any    `json:"data,omitempty"`
 }
 
-func (m *Master) newProc(w http.ResponseWriter, r *http.Request) {
+func (m *Master) listProcs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
 
+	data := m.core.ListProcs()
+	m.log.Debug(data, "es")
+	WriteJSON(w, http.StatusOK, SuccessResponse{Success: true, Msg: "List Fetched Successfully!!", Data: data}, nil)
+}
+
+func (m *Master) newProc(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -35,7 +52,7 @@ func (m *Master) newProc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := m.core.SpawnNewProcess(req.BinaryPath, -1, req.Args...)
+	err := m.core.SpawnProcess(req.BinaryPath, -1, req.Name, req.Args...)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -55,20 +72,38 @@ func (m *Master) killProc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.PathValue("id")
+	q := r.URL.Query().Get("q")
+	typ := r.URL.Query().Get("type")
 
-	zid, err := strconv.Atoi(id)
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+	if q == "" || typ == "" {
+		WriteError(w, http.StatusBadRequest, "Invalid/Missing Parameters q or type")
 		return
 	}
 
-	if zid <= 0 {
-		WriteError(w, http.StatusInternalServerError, "Invalid ID")
+	var err error
+
+	switch typ {
+	case "name":
+		q = strings.TrimSpace(q)
+		err = m.core.KillProcessByName(q)
+	case "id":
+		zid, err := strconv.Atoi(q)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if zid <= 0 {
+			WriteError(w, http.StatusInternalServerError, "Invalid ID")
+			return
+		}
+
+		err = m.core.KillProcess(zid)
+	default:
+		WriteError(w, http.StatusBadRequest, "Missing/Invalid Parameters q or type")
 		return
 	}
 
-	err = m.core.KillProcess(zid)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -83,22 +118,47 @@ func (m *Master) showStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.PathValue("id")
+	q := r.URL.Query().Get("q")
+	typ := r.URL.Query().Get("type")
 
-	zid, err := strconv.Atoi(id)
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	if q == "" || typ == "" {
+		WriteError(w, http.StatusBadRequest, "Invalid/Missing Parameters q or type")
 		return
 	}
 
-	if zid <= 0 {
-		WriteError(w, http.StatusBadRequest, "Invalid ID")
-		return
-	}
+	var stats map[string]interface{}
+	var err error
 
-	stats, err := m.core.ShowStats(zid)
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+	switch typ {
+	case "name":
+		q = strings.TrimSpace(q)
+		stats, err = m.core.ShowStatsByName(q)
+
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	case "id":
+		zid, err := strconv.Atoi(q)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+			return
+		}
+
+		if zid <= 0 {
+			WriteError(w, http.StatusBadRequest, "Invalid ID")
+			return
+		}
+
+		stats, err = m.core.ShowStats(zid)
+
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+	default:
+		WriteError(w, http.StatusBadRequest, "Missing/Invalid Parameters q or type")
 		return
 	}
 
@@ -114,12 +174,16 @@ func (m *Master) watchProc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.PathValue("id")
-	zid, err := strconv.Atoi(id)
-	if err != nil || zid <= 0 {
-		WriteError(w, http.StatusInternalServerError, "Invalid ID")
+	q := r.URL.Query().Get("q")
+	typ := r.URL.Query().Get("type")
+
+	if q == "" || typ == "" {
+		WriteError(w, http.StatusBadRequest, "Invalid/Missing Parameters q or type")
 		return
 	}
+
+	var lines <-chan string
+	var err error
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -131,15 +195,33 @@ func (m *Master) watchProc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lines, err := m.core.WatchProcess(zid)
-	if err != nil {
-		WriteError(w, http.StatusInternalServerError, err.Error())
+	switch typ {
+	case "name":
+		q = strings.TrimSpace(q)
+		lines, err = m.core.WatchProcessByName(q)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	case "id":
+		zid, err := strconv.Atoi(q)
+		if err != nil || zid <= 0 {
+			WriteError(w, http.StatusInternalServerError, "Invalid ID")
+			return
+		}
+
+		lines, err = m.core.WatchProcess(zid)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	default:
+		WriteError(w, http.StatusBadRequest, "Missing/Invalid Parameters q or type")
 		return
 	}
 
 	for line := range lines {
-		fmt.Fprintf(w, "data: %s\n", line)
+		fmt.Fprintf(w, "%s", line)
 		flusher.Flush()
 	}
-
 }

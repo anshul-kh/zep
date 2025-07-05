@@ -1,0 +1,14 @@
+[Unit]
+Description=Zep Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/zep-daemon start
+ExecStop=/usr/local/bin/zep-daemon stop
+ExecReload=/usr/local/bin/zep-daemon reload
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

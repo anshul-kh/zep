@@ -14,6 +14,14 @@ const (
 	port = "3746"
 )
 
+/** ==================
+*   Master Process
+* ==================*/
+
+/**
+* exposes an http api to use daemon functions
+* setups default bridge network on the system
+ */
 type Master struct {
 	IsRunning bool
 	log       *logger.Logger
@@ -46,18 +54,22 @@ func (m *Master) StartMaster() error {
 		fmt.Fprint(w, "server up and running")
 	})
 
+	mux.HandleFunc("/api/listProcs", m.listProcs)
+
 	mux.HandleFunc("/api/newProc", m.newProc)
 
-	mux.HandleFunc("/api/killProc/{id}", m.killProc)
+	mux.HandleFunc("/api/killProc", m.killProc)
 
-	mux.HandleFunc("/api/showStats/{id}", m.showStats)
+	mux.HandleFunc("/api/showStats", m.showStats)
 
-	mux.HandleFunc("/api/watchProc/{id}", m.watchProc)
+	mux.HandleFunc("/api/watchProc", m.watchProc)
 
 	err := m.br.SetUpBridge()
 	if err != nil {
 		m.log.Error(err)
 	}
+
+	m.core.MonitorProcesses()
 
 	err = http.ListenAndServe(fmt.Sprintf("%s:%s", host, port), mux)
 
@@ -66,8 +78,6 @@ func (m *Master) StartMaster() error {
 	}
 
 	m.IsRunning = true
-
-	m.core.MonitorProcesses()
 
 	return nil
 }

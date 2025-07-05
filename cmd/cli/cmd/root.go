@@ -1,10 +1,15 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
+
+/*
+* * Cobra is used to develop the cli interface of zep
+* - visit : github.com/spf13/cobra
+ */
+
+var name string
 
 var rootCmd = &cobra.Command{
 	Use:   "zep",
@@ -13,11 +18,13 @@ var rootCmd = &cobra.Command{
 
 It is designed to easily run and manage background processes, services,
 cron jobs, shell commands, and APIs with minimal setup.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Hello %s\n", "world")
-	},
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVar(&name, "name", "", "Name for the process")
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(statsCmd)
+	rootCmd.AddCommand(watchCmd)
+	rootCmd.AddCommand(listCmd)
 }

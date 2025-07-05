@@ -9,6 +9,12 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+/**
+* * -- zep0 : default bridge network
+* * this creates a defualt bridge network on the system
+* * this is necessary to isolate each process (prevents network conflics eg:api's )
+ */
+
 type Bridge struct {
 	GateWay string
 	CIDR    string
@@ -16,6 +22,9 @@ type Bridge struct {
 	IPAlloc *IPAllocator
 }
 
+/*
+* we have chosen some random ip to sevrve as gateway for bridge
+ */
 const (
 	BRIDGE_GATEWAY = "184.23.0.1"
 	BRIDGE_CIDR    = "24"

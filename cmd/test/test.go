@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// demo process to test the functions
 func main() {
 	id := 1
 	for {
