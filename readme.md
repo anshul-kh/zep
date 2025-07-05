@@ -4,6 +4,9 @@
 
 It is designed to easily run and manage background processes, services, cron jobs, shell commands, and APIs with minimal setup.
 
+> ⚠️ **Note:** Zep is currently supported **only on Unix-based systems** (e.g. Linux, macOS). Windows support is not available.
+
+
 ---
 
 ## ✨ Features
